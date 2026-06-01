@@ -175,6 +175,14 @@ function renderChapter() {
         updatePageInfo();
         readerViewport.scrollTo({ left: 0, top: 0, behavior: 'instant' });
     }, 100);
+
+    // Recalculate when images finish loading (they change column layout)
+    readerText.querySelectorAll('img').forEach(img => {
+        img.addEventListener('load', () => {
+            calculatePages();
+            updatePageInfo();
+        }, { once: true });
+    });
 }
 
 function formatSpeaker(speaker) {
@@ -185,26 +193,48 @@ function formatSpeaker(speaker) {
 // PAGINATION
 // ============================================
 
+const COLUMN_GAP = 80;
+const COLS_PER_PAGE = 2;
+
+function getPageStep() {
+    const vp = readerViewport.clientWidth;
+    const colWidth = Math.floor((vp - COLUMN_GAP) / COLS_PER_PAGE);
+    return COLS_PER_PAGE * (colWidth + COLUMN_GAP);
+}
+
 function calculatePages() {
     const vp = readerViewport.clientWidth;
-    const scrollWidth = readerText.scrollWidth;
-    totalPages = Math.max(1, Math.ceil(scrollWidth / vp));
+    const colWidth = Math.floor((vp - COLUMN_GAP) / COLS_PER_PAGE);
+    const pageStep = COLS_PER_PAGE * (colWidth + COLUMN_GAP);
+
+    readerText.style.columnWidth = colWidth + 'px';
+    readerText.style.width = '99999px';
+
+    void readerText.offsetHeight;
+
+    let contentWidth = pageStep;
+    const lastChild = readerText.lastElementChild;
+    if (lastChild) {
+        contentWidth = lastChild.offsetLeft + lastChild.offsetWidth;
+    }
+
+    totalPages = Math.max(1, Math.ceil(contentWidth / pageStep));
+    readerText.style.width = (totalPages * pageStep) + 'px';
 }
 
 function turnPage(direction) {
-    calculatePages();
     if (direction === 'next' && currentPage < totalPages - 1) {
         currentPage++;
     } else if (direction === 'prev' && currentPage > 0) {
         currentPage--;
     }
-    
-    const vp = readerViewport.clientWidth;
+
+    const pageStep = getPageStep();
     readerViewport.scrollTo({
-        left: currentPage * vp,
+        left: currentPage * pageStep,
         behavior: 'smooth'
     });
-    
+
     updatePageInfo();
 }
 
@@ -215,16 +245,15 @@ function updatePageInfo() {
 }
 
 function autoPageTurn(element) {
-    calculatePages();
-    const vp = readerViewport.clientWidth;
+    const pageStep = getPageStep();
     const elementLeft = element.offsetLeft;
-    const targetPage = Math.floor(elementLeft / vp);
-    
+    const targetPage = Math.floor(elementLeft / pageStep);
+
     if (targetPage !== currentPage && targetPage >= 0 && targetPage < totalPages) {
         currentPage = targetPage;
         readerViewport.scrollTo({
-            left: currentPage * vp,
-            behavior: 'smooth'
+            left: currentPage * pageStep,
+            behavior: isSeeking ? 'instant' : 'smooth'
         });
         updatePageInfo();
     }
@@ -372,10 +401,10 @@ function bindEvents() {
     window.addEventListener('resize', () => {
         if (!metadata) return;
         calculatePages();
-        // Ensure we don't end up on a page that no longer exists
         if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
         updatePageInfo();
-        readerViewport.scrollTo({ left: currentPage * readerViewport.clientWidth, behavior: 'instant' });
+        const pageStep = getPageStep();
+        readerViewport.scrollTo({ left: currentPage * pageStep, behavior: 'instant' });
     });
 
     // Progress seek
@@ -459,7 +488,6 @@ function bindEvents() {
         }
     });
 
-    // Resize logic removed since vertical scroll adapts natively
 }
 
 // ============================================

@@ -207,10 +207,9 @@ body {
 .reader-viewport::-webkit-scrollbar-track { background: transparent; }
 .reader-viewport::-webkit-scrollbar-thumb { background: rgba(166, 146, 115, 0.4); border-radius: 4px; }
 
-/* Reader text — two-column layout */
+/* Reader text — two-column layout (column-width set by JS for pagination) */
 .reader-text {
     height: 100%;
-    column-width: calc(50% - 40px);
     column-gap: 80px;
     column-fill: auto;
     margin: 0;

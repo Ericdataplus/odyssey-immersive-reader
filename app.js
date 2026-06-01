@@ -345,7 +345,6 @@ function seekToParagraph(index) {
     const para = metadata.paragraphs.find(p => p.index === index);
     if (para) {
         audio.currentTime = para.start_time;
-        if (!isPlaying) play();
     }
 }
 

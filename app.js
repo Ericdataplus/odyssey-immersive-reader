@@ -176,11 +176,15 @@ function renderChapter() {
         readerViewport.scrollTo({ left: 0, top: 0, behavior: 'instant' });
     }, 100);
 
-    // Recalculate when images finish loading (they change column layout)
-    readerText.querySelectorAll('img').forEach(img => {
-        img.addEventListener('load', () => {
+    // Recalculate when illustrations finish loading (they change column flow).
+    // Re-sync the scroll position so the current page stays put after reflow.
+    readerText.querySelectorAll('img, video').forEach(el => {
+        const ev = el.tagName === 'VIDEO' ? 'loadeddata' : 'load';
+        el.addEventListener(ev, () => {
             calculatePages();
+            if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
             updatePageInfo();
+            readerViewport.scrollTo({ left: currentPage * getPageStep(), behavior: 'instant' });
         }, { once: true });
     });
 }
@@ -244,13 +248,26 @@ function updatePageInfo() {
     if (pageNextBtn) pageNextBtn.classList.toggle('disabled', currentPage >= totalPages - 1);
 }
 
-function autoPageTurn(element) {
+function pageOfElement(element) {
     const pageStep = getPageStep();
-    const elementLeft = element.offsetLeft;
-    const targetPage = Math.floor(elementLeft / pageStep);
+    // NOTE: element.offsetLeft is unreliable inside CSS multi-column layouts
+    // (it reports the pre-fragmentation flow position, not the painted one).
+    // getBoundingClientRect gives the true visual position even when clipped,
+    // so we convert it to an absolute scroll offset within the viewport.
+    const vpRect = readerViewport.getBoundingClientRect();
+    const elRect = element.getBoundingClientRect();
+    const elementLeft = (elRect.left - vpRect.left) + readerViewport.scrollLeft;
+    // +2px tolerance so paragraphs sitting exactly on a page boundary
+    // resolve to the page they're actually painted on.
+    return Math.floor((elementLeft + 2) / pageStep);
+}
+
+function autoPageTurn(element) {
+    const targetPage = pageOfElement(element);
 
     if (targetPage !== currentPage && targetPage >= 0 && targetPage < totalPages) {
         currentPage = targetPage;
+        const pageStep = getPageStep();
         readerViewport.scrollTo({
             left: currentPage * pageStep,
             behavior: isSeeking ? 'instant' : 'smooth'
@@ -372,6 +389,9 @@ function seekToParagraph(index) {
     const para = metadata.paragraphs.find(p => p.index === index);
     if (para) {
         audio.currentTime = para.start_time;
+        // When paused, the animation loop isn't running, so sync the
+        // highlight, progress bar and page turn immediately.
+        if (!isPlaying) onTimeUpdate();
     }
 }
 

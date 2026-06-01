@@ -321,9 +321,7 @@ function highlightParagraph(index, prevIndex) {
     el.classList.add('active');
 
     // Auto page turn
-    if (isPlaying) {
-        autoPageTurn(el);
-    }
+    autoPageTurn(el);
 }
 
 // ============================================
@@ -383,12 +381,7 @@ function bindEvents() {
     // Progress seek
     progressInput.addEventListener('input', (e) => {
         isSeeking = true;
-        const val = parseInt(e.target.value);
-        const dur = audio.duration || 0;
-        if (dur > 0) {
-            progressFill.style.width = `${(val / 10000) * 100}%`;
-            timeCurrent.textContent = formatTime((val / 10000) * dur);
-        }
+        seekTo(parseInt(e.target.value));
     });
 
     progressInput.addEventListener('change', (e) => {

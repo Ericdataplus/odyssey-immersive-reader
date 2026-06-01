@@ -4,7 +4,7 @@
 // page turning, audio sync, and highlighting
 // ============================================
 
-const AUDIO_BASE = '../app/audiobook';
+const AUDIO_BASE = './audiobook';
 
 // ---- State ----
 let audio = new Audio();
@@ -126,11 +126,11 @@ function renderChapter() {
     }
 
     const additionalArt = {
-        5: "file:///C:/Users/wheel/.gemini/antigravity/brain/0829e660-6298-4afe-b22a-e392f9388373/odyssey_scene_1_olympus_1780298725926.png",
-        15: "file:///C:/Users/wheel/.gemini/antigravity/brain/0829e660-6298-4afe-b22a-e392f9388373/odyssey_scene_2_athena_1780298738793.png",
-        30: "file:///C:/Users/wheel/.gemini/antigravity/brain/0829e660-6298-4afe-b22a-e392f9388373/odyssey_scene_3_suitors_1780298751425.png",
-        45: "file:///C:/Users/wheel/.gemini/antigravity/brain/0829e660-6298-4afe-b22a-e392f9388373/odyssey_scene_5_phemius_1780298775631.png",
-        55: "file:///C:/Users/wheel/.gemini/antigravity/brain/0829e660-6298-4afe-b22a-e392f9388373/odyssey_scene_4_telemachus_1780298764836.png"
+        5: "assets/odyssey_scene_1_olympus_1780298725926.png",
+        15: "assets/odyssey_scene_2_athena_1780298738793.png",
+        30: "assets/odyssey_scene_3_suitors_1780298751425.png",
+        45: "assets/odyssey_scene_5_phemius_1780298775631.png",
+        55: "assets/odyssey_scene_4_telemachus_1780298764836.png"
     };
 
     let html = '';
@@ -157,15 +157,24 @@ function renderChapter() {
         if (para.illustration) {
             const src = `${AUDIO_BASE}/${para.illustration}`;
             html += `<div class="inline-illustration">`;
-            html += `  <img src="${src}" alt="Scene illustration" loading="lazy">`;
+            if (src.endsWith('.mp4')) {
+                html += `  <video src="${src}" autoplay muted loop playsinline></video>`;
+            } else {
+                html += `  <img src="${src}" alt="Scene illustration" loading="lazy">`;
+            }
             html += `</div>`;
         }
     });
 
     readerText.innerHTML = html;
 
-    // Scroll to top
-    readerViewport.scrollTop = 0;
+    // Calculate pages and reset to first page
+    currentPage = 0;
+    setTimeout(() => {
+        calculatePages();
+        updatePageInfo();
+        readerViewport.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+    }, 100);
 }
 
 function formatSpeaker(speaker) {
@@ -173,11 +182,52 @@ function formatSpeaker(speaker) {
 }
 
 // ============================================
-// PAGINATION REMOVED IN FAVOR OF VERTICAL SCROLL
+// PAGINATION
 // ============================================
 
+function calculatePages() {
+    const vp = readerViewport.clientWidth;
+    const scrollWidth = readerText.scrollWidth;
+    totalPages = Math.max(1, Math.ceil(scrollWidth / vp));
+}
+
+function turnPage(direction) {
+    calculatePages();
+    if (direction === 'next' && currentPage < totalPages - 1) {
+        currentPage++;
+    } else if (direction === 'prev' && currentPage > 0) {
+        currentPage--;
+    }
+    
+    const vp = readerViewport.clientWidth;
+    readerViewport.scrollTo({
+        left: currentPage * vp,
+        behavior: 'smooth'
+    });
+    
+    updatePageInfo();
+}
+
+function updatePageInfo() {
+    pageInfo.textContent = `Page ${currentPage + 1} of ${totalPages || 1}`;
+    if (pagePrevBtn) pagePrevBtn.classList.toggle('disabled', currentPage === 0);
+    if (pageNextBtn) pageNextBtn.classList.toggle('disabled', currentPage >= totalPages - 1);
+}
+
 function autoPageTurn(element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    calculatePages();
+    const vp = readerViewport.clientWidth;
+    const elementLeft = element.offsetLeft;
+    const targetPage = Math.floor(elementLeft / vp);
+    
+    if (targetPage !== currentPage && targetPage >= 0 && targetPage < totalPages) {
+        currentPage = targetPage;
+        readerViewport.scrollTo({
+            left: currentPage * vp,
+            behavior: 'smooth'
+        });
+        updatePageInfo();
+    }
 }
 
 // ============================================
@@ -318,7 +368,18 @@ function bindEvents() {
     // Play/Pause
     playPauseBtn.addEventListener('click', toggle);
 
-    // Page navigation removed
+    // Page navigation
+    if (pagePrevBtn) pagePrevBtn.addEventListener('click', () => turnPage('prev'));
+    if (pageNextBtn) pageNextBtn.addEventListener('click', () => turnPage('next'));
+
+    window.addEventListener('resize', () => {
+        if (!metadata) return;
+        calculatePages();
+        // Ensure we don't end up on a page that no longer exists
+        if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
+        updatePageInfo();
+        readerViewport.scrollTo({ left: currentPage * readerViewport.clientWidth, behavior: 'instant' });
+    });
 
     // Progress seek
     progressInput.addEventListener('input', (e) => {

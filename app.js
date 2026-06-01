@@ -211,15 +211,23 @@ function calculatePages() {
     const colWidth = Math.floor((vp - COLUMN_GAP) / COLS_PER_PAGE);
     const pageStep = COLS_PER_PAGE * (colWidth + COLUMN_GAP);
 
+    // Force a definite pixel height so the multi-column box actually breaks
+    // content into columns (a percentage height can fail to resolve, which
+    // makes everything flow into a single tall column instead of paginating).
+    readerText.style.height = readerViewport.clientHeight + 'px';
     readerText.style.columnWidth = colWidth + 'px';
-    readerText.style.width = '99999px';
+    readerText.style.width = '999999px';
 
-    void readerText.offsetHeight;
+    void readerText.offsetHeight; // force reflow
 
+    // Measure the true content width via getBoundingClientRect. offsetLeft is
+    // unreliable inside CSS multi-column layouts, so scan the painted right
+    // edge of every child instead.
+    const base = readerText.getBoundingClientRect().left;
     let contentWidth = pageStep;
-    const lastChild = readerText.lastElementChild;
-    if (lastChild) {
-        contentWidth = lastChild.offsetLeft + lastChild.offsetWidth;
+    for (const child of readerText.children) {
+        const right = child.getBoundingClientRect().right - base;
+        if (right > contentWidth) contentWidth = right;
     }
 
     totalPages = Math.max(1, Math.ceil(contentWidth / pageStep));

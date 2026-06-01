@@ -217,7 +217,13 @@ function updatePageInfo() {
 function autoPageTurn(element) {
     calculatePages();
     const vp = readerViewport.clientWidth;
-    const elementLeft = element.offsetLeft;
+    
+    // In multi-column layouts, offsetLeft is relative to the column, not the container.
+    // We must use getBoundingClientRect to find the true horizontal offset.
+    const textRect = readerText.getBoundingClientRect();
+    const elRect = element.getBoundingClientRect();
+    const elementLeft = elRect.left - textRect.left;
+    
     const targetPage = Math.floor(elementLeft / vp);
     
     if (targetPage !== currentPage && targetPage >= 0 && targetPage < totalPages) {

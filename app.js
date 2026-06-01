@@ -187,7 +187,7 @@ function formatSpeaker(speaker) {
 
 function calculatePages() {
     const vp = readerViewport.clientWidth;
-    const scrollWidth = readerText.scrollWidth;
+    const scrollWidth = readerViewport.scrollWidth;
     totalPages = Math.max(1, Math.ceil(scrollWidth / vp));
 }
 

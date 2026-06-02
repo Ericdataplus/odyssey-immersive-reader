@@ -25,8 +25,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Assemble only the files the app needs. The source WAVs (57-80 MB each)
-      # are excluded; the app plays the compressed book_01.mp3 instead.
       - name: Assemble site
         run: |
           mkdir -p _site/audiobook/chapters
@@ -40,8 +38,6 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

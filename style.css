@@ -35,8 +35,12 @@ body {
     background: var(--bg-deep);
     color: var(--text-ui);
     height: 100vh;
+    height: 100dvh; /* account for mobile browser chrome */
     overflow: hidden;
+    overscroll-behavior: none; /* no pull-to-refresh while swiping pages */
     -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 /* ============================================
@@ -114,6 +118,7 @@ body {
 .book-area {
     position: relative;
     height: calc(100vh - var(--top-bar-height) - var(--player-height));
+    height: calc(100dvh - var(--top-bar-height) - var(--player-height));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -207,10 +212,9 @@ body {
 .reader-viewport::-webkit-scrollbar-track { background: transparent; }
 .reader-viewport::-webkit-scrollbar-thumb { background: rgba(166, 146, 115, 0.4); border-radius: 4px; }
 
-/* Reader text — two-column layout */
+/* Reader text — two-column layout (column-width set by JS for pagination) */
 .reader-text {
     height: 100%;
-    column-width: calc(50% - 40px);
     column-gap: 80px;
     column-fill: auto;
     margin: 0;
@@ -567,3 +571,75 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+
+/* ============================================
+   MOBILE / PHONE LAYOUT
+   Single-column pages, swipe to turn, compact UI
+   ============================================ */
+
+@media (max-width: 700px) {
+    :root {
+        --top-bar-height: 46px;
+        --player-height: 60px;
+    }
+
+    /* Top bar — keep it to one tidy line */
+    .top-bar { padding: 0 12px; }
+    .top-author { font-size: 0.55rem; letter-spacing: 0.18em; }
+    .top-title { font-size: 0.95rem; }
+    .top-bar-center { display: none; }            /* chapter name shown in player */
+    .page-info { font-size: 0.68rem; }
+
+    /* Book area — give the text the full width */
+    .book-area {
+        padding: 8px 6px;
+    }
+
+    .book-container {
+        max-width: none;
+        padding: 20px 16px;
+        border-radius: 4px;
+    }
+
+    /* No spine in single-column mode */
+    .book-spine { display: none; }
+
+    /* Smaller, translucent page arrows (swipe is primary) */
+    .page-nav {
+        width: 34px;
+        height: 34px;
+        font-size: 1.1rem;
+        background: rgba(0, 0, 0, 0.12);
+        opacity: 0.55;
+    }
+    .page-prev { left: 2px; }
+    .page-next { right: 2px; }
+
+    .reader-text {
+        font-size: 1.08rem;
+        line-height: 1.7;
+    }
+
+    .inline-illustration img,
+    .inline-illustration video {
+        max-height: 32vh;
+    }
+
+    /* Player bar — compact single row; drop volume + chapter picker */
+    .player-bar {
+        padding-bottom: env(safe-area-inset-bottom);
+        height: calc(var(--player-height) + env(safe-area-inset-bottom));
+    }
+    .player-bar-inner {
+        padding: 0 10px;
+        gap: 8px;
+    }
+    .player-transport { gap: 4px; }
+    .player-btn { width: 30px; height: 30px; font-size: 0.7rem; }
+    .player-play { width: 38px; height: 38px; font-size: 0.9rem; }
+    .player-progress-section { gap: 6px; }
+    .player-time { min-width: 32px; font-size: 0.62rem; }
+    .player-chapter-select { display: none; }
+    .volume-icon, .player-volume { display: none; }
+    .player-select { padding: 4px 6px; font-size: 0.65rem; }
+}

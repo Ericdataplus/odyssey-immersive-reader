@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - claude/funny-brown-omnpI
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site/audiobook/chapters
+          cp index.html app.js style.css .nojekyll _site/
+          cp -r assets _site/
+          cp audiobook/manifest.json _site/audiobook/
+          cp audiobook/chapters/book_01.mp3 _site/audiobook/chapters/
+          cp audiobook/chapters/book_01_meta.json _site/audiobook/chapters/
+          cp -r audiobook/animations _site/audiobook/
+          cp -r audiobook/illustrations _site/audiobook/
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          force_orphan: true

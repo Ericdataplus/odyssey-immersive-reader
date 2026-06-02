@@ -79,7 +79,8 @@ async function loadChapter(chapterNum) {
     currentParagraphIndex = -1;
 
     const padded = String(chapterNum).padStart(2, '0');
-    const audioPath = `${AUDIO_BASE}/chapters/book_${padded}.wav`;
+    // MP3 (compressed) so it stays under static-host per-file size limits.
+    const audioPath = `${AUDIO_BASE}/chapters/book_${padded}.mp3`;
     const metaPath = `${AUDIO_BASE}/chapters/book_${padded}_meta.json`;
 
     try {
@@ -175,6 +176,18 @@ function renderChapter() {
         updatePageInfo();
         readerViewport.scrollTo({ left: 0, top: 0, behavior: 'instant' });
     }, 100);
+
+    // Recalculate when illustrations finish loading (they change column flow).
+    // Re-sync the scroll position so the current page stays put after reflow.
+    readerText.querySelectorAll('img, video').forEach(el => {
+        const ev = el.tagName === 'VIDEO' ? 'loadeddata' : 'load';
+        el.addEventListener(ev, () => {
+            calculatePages();
+            if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
+            updatePageInfo();
+            readerViewport.scrollTo({ left: currentPage * getPageStep(), behavior: 'instant' });
+        }, { once: true });
+    });
 }
 
 function formatSpeaker(speaker) {
@@ -185,26 +198,70 @@ function formatSpeaker(speaker) {
 // PAGINATION
 // ============================================
 
+// Narrow screens (phones) read better as a single column per page.
+const MOBILE_BREAKPOINT = 700;
+
+function getColsPerPage() {
+    return window.innerWidth <= MOBILE_BREAKPOINT ? 1 : 2;
+}
+
+function getColumnGap() {
+    return window.innerWidth <= MOBILE_BREAKPOINT ? 28 : 80;
+}
+
+function getPageStep() {
+    const vp = readerViewport.clientWidth;
+    const cols = getColsPerPage();
+    const gap = getColumnGap();
+    const colWidth = Math.floor((vp - gap) / cols);
+    return cols * (colWidth + gap);
+}
+
 function calculatePages() {
     const vp = readerViewport.clientWidth;
-    const scrollWidth = readerViewport.scrollWidth;
-    totalPages = Math.max(1, Math.ceil(scrollWidth / vp));
+    const cols = getColsPerPage();
+    const gap = getColumnGap();
+    const colWidth = Math.floor((vp - gap) / cols);
+    const pageStep = cols * (colWidth + gap);
+
+    readerText.style.columnGap = gap + 'px';
+
+    // Force a definite pixel height so the multi-column box actually breaks
+    // content into columns (a percentage height can fail to resolve, which
+    // makes everything flow into a single tall column instead of paginating).
+    readerText.style.height = readerViewport.clientHeight + 'px';
+    readerText.style.columnWidth = colWidth + 'px';
+    readerText.style.width = '999999px';
+
+    void readerText.offsetHeight; // force reflow
+
+    // Measure the true content width via getBoundingClientRect. offsetLeft is
+    // unreliable inside CSS multi-column layouts, so scan the painted right
+    // edge of every child instead.
+    const base = readerText.getBoundingClientRect().left;
+    let contentWidth = pageStep;
+    for (const child of readerText.children) {
+        const right = child.getBoundingClientRect().right - base;
+        if (right > contentWidth) contentWidth = right;
+    }
+
+    totalPages = Math.max(1, Math.ceil(contentWidth / pageStep));
+    readerText.style.width = (totalPages * pageStep) + 'px';
 }
 
 function turnPage(direction) {
-    calculatePages();
     if (direction === 'next' && currentPage < totalPages - 1) {
         currentPage++;
     } else if (direction === 'prev' && currentPage > 0) {
         currentPage--;
     }
-    
-    const vp = readerViewport.clientWidth;
+
+    const pageStep = getPageStep();
     readerViewport.scrollTo({
-        left: currentPage * vp,
+        left: currentPage * pageStep,
         behavior: 'smooth'
     });
-    
+
     updatePageInfo();
 }
 
@@ -214,23 +271,29 @@ function updatePageInfo() {
     if (pageNextBtn) pageNextBtn.classList.toggle('disabled', currentPage >= totalPages - 1);
 }
 
-function autoPageTurn(element) {
-    calculatePages();
-    const vp = readerViewport.clientWidth;
-    
-    // In multi-column layouts, offsetLeft is relative to the column, not the container.
-    // We must use getBoundingClientRect to find the true horizontal offset.
-    const textRect = readerText.getBoundingClientRect();
+function pageOfElement(element) {
+    const pageStep = getPageStep();
+    // NOTE: element.offsetLeft is unreliable inside CSS multi-column layouts
+    // (it reports the pre-fragmentation flow position, not the painted one).
+    // getBoundingClientRect gives the true visual position even when clipped,
+    // so we convert it to an absolute scroll offset within the viewport.
+    const vpRect = readerViewport.getBoundingClientRect();
     const elRect = element.getBoundingClientRect();
-    const elementLeft = elRect.left - textRect.left;
-    
-    const targetPage = Math.floor(elementLeft / vp);
-    
+    const elementLeft = (elRect.left - vpRect.left) + readerViewport.scrollLeft;
+    // +2px tolerance so paragraphs sitting exactly on a page boundary
+    // resolve to the page they're actually painted on.
+    return Math.floor((elementLeft + 2) / pageStep);
+}
+
+function autoPageTurn(element) {
+    const targetPage = pageOfElement(element);
+
     if (targetPage !== currentPage && targetPage >= 0 && targetPage < totalPages) {
         currentPage = targetPage;
+        const pageStep = getPageStep();
         readerViewport.scrollTo({
-            left: currentPage * vp,
-            behavior: 'smooth'
+            left: currentPage * pageStep,
+            behavior: isSeeking ? 'instant' : 'smooth'
         });
         updatePageInfo();
     }
@@ -349,6 +412,9 @@ function seekToParagraph(index) {
     const para = metadata.paragraphs.find(p => p.index === index);
     if (para) {
         audio.currentTime = para.start_time;
+        // When paused, the animation loop isn't running, so sync the
+        // highlight, progress bar and page turn immediately.
+        if (!isPlaying) onTimeUpdate();
     }
 }
 
@@ -375,14 +441,35 @@ function bindEvents() {
     if (pagePrevBtn) pagePrevBtn.addEventListener('click', () => turnPage('prev'));
     if (pageNextBtn) pageNextBtn.addEventListener('click', () => turnPage('next'));
 
-    window.addEventListener('resize', () => {
+    const reflowToCurrentPage = () => {
         if (!metadata) return;
         calculatePages();
-        // Ensure we don't end up on a page that no longer exists
         if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
         updatePageInfo();
-        readerViewport.scrollTo({ left: currentPage * readerViewport.clientWidth, behavior: 'instant' });
-    });
+        readerViewport.scrollTo({ left: currentPage * getPageStep(), behavior: 'instant' });
+    };
+    window.addEventListener('resize', reflowToCurrentPage);
+    // Recalculate after the viewport settles following an orientation change.
+    window.addEventListener('orientationchange', () => setTimeout(reflowToCurrentPage, 250));
+
+    // Touch swipe to turn pages (left = next, right = prev)
+    let touchStartX = 0, touchStartY = 0, touchActive = false;
+    readerViewport.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchActive = true;
+    }, { passive: true });
+    readerViewport.addEventListener('touchend', (e) => {
+        if (!touchActive) return;
+        touchActive = false;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        // Horizontal swipe that clearly dominates the vertical movement.
+        if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            turnPage(dx < 0 ? 'next' : 'prev');
+        }
+    }, { passive: true });
 
     // Progress seek
     progressInput.addEventListener('input', (e) => {
@@ -465,7 +552,6 @@ function bindEvents() {
         }
     });
 
-    // Resize logic removed since vertical scroll adapts natively
 }
 
 // ============================================

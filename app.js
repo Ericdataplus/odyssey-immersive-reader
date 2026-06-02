@@ -197,19 +197,33 @@ function formatSpeaker(speaker) {
 // PAGINATION
 // ============================================
 
-const COLUMN_GAP = 80;
-const COLS_PER_PAGE = 2;
+// Narrow screens (phones) read better as a single column per page.
+const MOBILE_BREAKPOINT = 700;
+
+function getColsPerPage() {
+    return window.innerWidth <= MOBILE_BREAKPOINT ? 1 : 2;
+}
+
+function getColumnGap() {
+    return window.innerWidth <= MOBILE_BREAKPOINT ? 28 : 80;
+}
 
 function getPageStep() {
     const vp = readerViewport.clientWidth;
-    const colWidth = Math.floor((vp - COLUMN_GAP) / COLS_PER_PAGE);
-    return COLS_PER_PAGE * (colWidth + COLUMN_GAP);
+    const cols = getColsPerPage();
+    const gap = getColumnGap();
+    const colWidth = Math.floor((vp - gap) / cols);
+    return cols * (colWidth + gap);
 }
 
 function calculatePages() {
     const vp = readerViewport.clientWidth;
-    const colWidth = Math.floor((vp - COLUMN_GAP) / COLS_PER_PAGE);
-    const pageStep = COLS_PER_PAGE * (colWidth + COLUMN_GAP);
+    const cols = getColsPerPage();
+    const gap = getColumnGap();
+    const colWidth = Math.floor((vp - gap) / cols);
+    const pageStep = cols * (colWidth + gap);
+
+    readerText.style.columnGap = gap + 'px';
 
     // Force a definite pixel height so the multi-column box actually breaks
     // content into columns (a percentage height can fail to resolve, which
@@ -426,14 +440,35 @@ function bindEvents() {
     if (pagePrevBtn) pagePrevBtn.addEventListener('click', () => turnPage('prev'));
     if (pageNextBtn) pageNextBtn.addEventListener('click', () => turnPage('next'));
 
-    window.addEventListener('resize', () => {
+    const reflowToCurrentPage = () => {
         if (!metadata) return;
         calculatePages();
         if (currentPage >= totalPages) currentPage = Math.max(0, totalPages - 1);
         updatePageInfo();
-        const pageStep = getPageStep();
-        readerViewport.scrollTo({ left: currentPage * pageStep, behavior: 'instant' });
-    });
+        readerViewport.scrollTo({ left: currentPage * getPageStep(), behavior: 'instant' });
+    };
+    window.addEventListener('resize', reflowToCurrentPage);
+    // Recalculate after the viewport settles following an orientation change.
+    window.addEventListener('orientationchange', () => setTimeout(reflowToCurrentPage, 250));
+
+    // Touch swipe to turn pages (left = next, right = prev)
+    let touchStartX = 0, touchStartY = 0, touchActive = false;
+    readerViewport.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchActive = true;
+    }, { passive: true });
+    readerViewport.addEventListener('touchend', (e) => {
+        if (!touchActive) return;
+        touchActive = false;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        // Horizontal swipe that clearly dominates the vertical movement.
+        if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            turnPage(dx < 0 ? 'next' : 'prev');
+        }
+    }, { passive: true });
 
     // Progress seek
     progressInput.addEventListener('input', (e) => {

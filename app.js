@@ -79,7 +79,8 @@ async function loadChapter(chapterNum) {
     currentParagraphIndex = -1;
 
     const padded = String(chapterNum).padStart(2, '0');
-    const audioPath = `${AUDIO_BASE}/chapters/book_${padded}.wav`;
+    // MP3 (compressed) so it stays under static-host per-file size limits.
+    const audioPath = `${AUDIO_BASE}/chapters/book_${padded}.mp3`;
     const metaPath = `${AUDIO_BASE}/chapters/book_${padded}_meta.json`;
 
     try {

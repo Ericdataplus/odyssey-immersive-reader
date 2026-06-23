@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Odyssey — Immersive Illustrated Edition</title>
+    <meta name="description" content="Experience Homer's Odyssey as a fully illustrated, multi-voice audiobook with cinematic artwork and synchronized narration.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <header class="top-bar" id="top-bar">
+        <div class="top-bar-left">
+            <p class="top-author">HOMER</p>
+            <h1 class="top-title">The Odyssey</h1>
+        </div>
+        <div class="top-bar-center">
+            <span class="chapter-label" id="chapter-label">BOOK I</span>
+            <span class="chapter-subtitle" id="chapter-subtitle">THE GODS IN COUNCIL</span>
+        </div>
+        <div class="top-bar-right">
+            <span class="page-info" id="page-info">Page 1 of 1</span>
+        </div>
+    </header>
+
+    <!-- Book Area -->
+    <main class="book-area">
+        <button class="page-nav page-prev" id="page-prev" title="Previous Page">❮</button>
+        <button class="page-nav page-next" id="page-next" title="Next Page">❯</button>
+
+        <div class="book-container">
+            <div class="book-spine"></div>
+            <div class="reader-viewport" id="reader-viewport">
+                <div class="reader-text" id="reader-text">
+                    <!-- Content rendered by JS -->
+                    <div class="loading-state" id="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading chapter...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Fixed Audio Player Bar -->
+    <div class="player-bar" id="player-bar">
+        <div class="player-bar-inner">
+            <div class="player-transport">
+                <button class="player-btn" id="prev-chapter" title="Previous Chapter">⏮</button>
+                <button class="player-btn player-play" id="play-pause" title="Play / Pause (Space)">▶</button>
+                <button class="player-btn" id="next-chapter" title="Next Chapter">⏭</button>
+            </div>
+
+            <div class="player-progress-section">
+                <span class="player-time" id="time-current">0:00</span>
+                <div class="player-progress-track" id="progress-track">
+                    <div class="player-progress-fill" id="progress-fill"></div>
+                    <input type="range" class="player-progress-input" id="progress-input" min="0" max="10000" value="0" step="1">
+                </div>
+                <span class="player-time" id="time-total">0:00</span>
+            </div>
+
+            <div class="player-controls-right">
+                <select class="player-select" id="speed-select" title="Playback Speed">
+                    <option value="0.5">0.5×</option>
+                    <option value="0.75">0.75×</option>
+                    <option value="1" selected>1×</option>
+                    <option value="1.25">1.25×</option>
+                    <option value="1.5">1.5×</option>
+                    <option value="2">2×</option>
+                </select>
+                <select class="player-select player-chapter-select" id="chapter-select" title="Select Chapter"></select>
+                <span class="volume-icon" id="volume-icon">🔊</span>
+                <input type="range" class="player-volume" id="volume-input" min="0" max="100" value="80" title="Volume">
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

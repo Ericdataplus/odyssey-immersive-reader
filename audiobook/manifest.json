@@ -1,0 +1,26 @@
+{
+  "title": "The Odyssey",
+  "author": "Homer",
+  "translator": "Samuel Butler",
+  "total_chapters": 1,
+  "total_duration_seconds": 1263.25,
+  "chapters": [
+    {
+      "book_num": 1,
+      "chapter": "BOOK 1",
+      "title": "THE GODS IN COUNCIL — MINERVA'S VISIT TO ITHACA",
+      "duration_seconds": 1263.25,
+      "audio_file": "chapters/book_01.wav",
+      "meta_file": "chapters/book_01_meta.json",
+      "paragraph_count": 32,
+      "illustrations": [
+        "book_01_scene_01.png",
+        "book_01_scene_02.png",
+        "book_01_scene_03.png",
+        "book_01_scene_04.png",
+        "book_01_scene_05.png",
+        "book_01_scene_06.png"
+      ]
+    }
+  ]
+}

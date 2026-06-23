@@ -1,0 +1,645 @@
+/* ============================================
+   THE ODYSSEY — BOOK FORMAT IMMERSIVE READER
+   Two-column parchment with inline illustrations
+   ============================================ */
+
+:root {
+    --bg-deep: #08090c;
+    --bg-surface: #0f1115;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-gold: rgba(212, 175, 55, 0.2);
+
+    --text-ui: #e8e4dc;
+    --text-secondary: #a09888;
+    --text-muted: #6b5f50;
+
+    --gold: #d4af37;
+    --gold-light: #f0d060;
+    --gold-dim: rgba(212, 175, 55, 0.15);
+
+    --parchment: #fdfaf3;
+    --parchment-text: #2b2318;
+
+    --font-body: 'Cormorant Garamond', 'Georgia', serif;
+    --font-ui: 'Inter', sans-serif;
+    --font-heading: 'Outfit', sans-serif;
+
+    --player-height: 68px;
+    --top-bar-height: 52px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-ui);
+    background: var(--bg-deep);
+    color: var(--text-ui);
+    height: 100vh;
+    height: 100dvh; /* account for mobile browser chrome */
+    overflow: hidden;
+    overscroll-behavior: none; /* no pull-to-refresh while swiping pages */
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* ============================================
+   TOP BAR
+   ============================================ */
+
+.top-bar {
+    height: var(--top-bar-height);
+    background: rgba(8, 9, 12, 0.95);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    z-index: 50;
+}
+
+.top-bar-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.top-author {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+    text-transform: uppercase;
+}
+
+.top-title {
+    font-family: var(--font-body);
+    font-size: 1.2rem;
+    font-weight: 600;
+    font-style: italic;
+    color: var(--text-ui);
+}
+
+.top-bar-center {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.chapter-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+}
+
+.chapter-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+}
+
+.page-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* ============================================
+   BOOK AREA — Full-screen parchment book
+   ============================================ */
+
+.book-area {
+    position: relative;
+    height: calc(100vh - var(--top-bar-height) - var(--player-height));
+    height: calc(100dvh - var(--top-bar-height) - var(--player-height));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 80px;
+    background:
+        radial-gradient(ellipse at 50% 30%, rgba(212, 175, 55, 0.03) 0%, transparent 60%),
+        var(--bg-deep);
+}
+
+/* Page navigation */
+.page-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--gold);
+    cursor: pointer;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.6rem;
+    z-index: 10;
+    transition: all 0.25s ease;
+    font-family: var(--font-body);
+}
+
+.page-nav:hover {
+    background: var(--gold);
+    color: var(--bg-deep);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+.page-prev { left: 16px; }
+.page-next { right: 16px; }
+
+.page-nav.disabled {
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+/* Book container — parchment */
+.book-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 1100px;
+    background: var(--parchment);
+    border-radius: 4px;
+    box-shadow:
+        inset 0 0 50px rgba(166, 146, 115, 0.25),
+        0 8px 40px rgba(0, 0, 0, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 48px 56px;
+}
+
+/* Spine shadow */
+.book-spine {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 60px;
+    height: 100%;
+    transform: translateX(-50%);
+    background: linear-gradient(to right,
+        rgba(255,255,255,0) 0%,
+        rgba(0,0,0,0.03) 35%,
+        rgba(0,0,0,0.1) 50%,
+        rgba(255,255,255,0.4) 65%,
+        rgba(255,255,255,0) 100%);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Reader viewport */
+.reader-viewport {
+    width: 100%;
+    height: 100%;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    position: relative;
+    scroll-behavior: smooth;
+    padding-right: 0;
+}
+
+/* Custom scrollbar for reader */
+.reader-viewport::-webkit-scrollbar { width: 8px; height: 8px; }
+.reader-viewport::-webkit-scrollbar-track { background: transparent; }
+.reader-viewport::-webkit-scrollbar-thumb { background: rgba(166, 146, 115, 0.4); border-radius: 4px; }
+
+/* Reader text — two-column layout (column-width set by JS for pagination) */
+.reader-text {
+    height: 100%;
+    column-gap: 80px;
+    column-fill: auto;
+    margin: 0;
+    max-width: none;
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    line-height: 1.75;
+    color: var(--parchment-text);
+    text-align: justify;
+    padding-bottom: 0;
+}
+
+/* Paragraphs */
+.reader-text p {
+    margin: 0;
+    text-indent: 2em;
+    padding-bottom: 0.6em;
+    transition: background 0.4s ease, border-left-color 0.4s ease;
+    border-left: 3px solid transparent;
+    padding-left: 0;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.reader-text p:first-of-type {
+    text-indent: 0;
+}
+
+/* Active paragraph */
+.reader-text p.active {
+    background: linear-gradient(90deg,
+        rgba(212, 175, 55, 0.12),
+        rgba(212, 175, 55, 0.06),
+        transparent
+    );
+    border-left-color: var(--gold);
+    padding-left: 10px;
+}
+
+.reader-text p:hover {
+    background: rgba(212, 175, 55, 0.04);
+}
+
+/* Speaker tags */
+.speaker-tag {
+    display: inline-block;
+    font-family: var(--font-ui);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8b6914;
+    background: rgba(212, 175, 55, 0.15);
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-bottom: 3px;
+    text-indent: 0;
+}
+
+/* ============================================
+   INLINE ILLUSTRATIONS — within column flow
+   ============================================ */
+
+.inline-illustration {
+    break-inside: avoid;
+    margin: 0.8em 0 1em 0;
+    padding: 0;
+    text-indent: 0;
+}
+
+.inline-illustration img,
+.inline-illustration video {
+    width: 100%;
+    max-height: 45vh;
+    object-fit: contain;
+    display: block;
+    border-radius: 6px;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.15),
+        0 2px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(166, 146, 115, 0.3);
+}
+
+.inline-illustration .ill-caption {
+    text-align: center;
+    font-family: var(--font-ui);
+    font-size: 0.6rem;
+    color: #9a8a6e;
+    margin-top: 6px;
+    font-style: italic;
+    letter-spacing: 0.02em;
+    text-indent: 0;
+}
+
+/* Loading state */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 80px 0;
+    color: #9a8a6e;
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+}
+
+.loading-spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(166, 146, 115, 0.3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================
+   FIXED PLAYER BAR
+   ============================================ */
+
+.player-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--player-height);
+    background: rgba(10, 10, 14, 0.9);
+    backdrop-filter: blur(28px) saturate(1.5);
+    -webkit-backdrop-filter: blur(28px) saturate(1.5);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-bar-inner {
+    width: 100%;
+    max-width: 1100px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* Transport */
+.player-transport {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.player-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: var(--text-secondary);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.player-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-ui);
+}
+
+.player-play {
+    width: 42px;
+    height: 42px;
+    font-size: 1rem;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.22), rgba(212, 175, 55, 0.08));
+    border-color: rgba(212, 175, 55, 0.28);
+    color: var(--gold-light);
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.1);
+}
+
+.player-play:hover {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.15));
+    box-shadow: 0 0 22px rgba(212, 175, 55, 0.25);
+    transform: scale(1.05);
+}
+
+.player-play.playing {
+    animation: glow 2.5s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 14px rgba(212, 175, 55, 0.1); }
+    50% { box-shadow: 0 0 26px rgba(212, 175, 55, 0.28); }
+}
+
+/* Progress */
+.player-progress-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.player-time {
+    font-family: 'Consolas', 'SF Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    min-width: 38px;
+    text-align: center;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.player-progress-track {
+    flex: 1;
+    position: relative;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.player-progress-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    width: 0%;
+    pointer-events: none;
+    transition: width 0.1s linear;
+}
+
+.player-progress-input {
+    position: absolute;
+    top: -7px; left: 0;
+    width: 100%;
+    height: 20px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    margin: 0;
+    z-index: 2;
+}
+
+.player-progress-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+}
+
+.player-progress-input::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+.player-progress-input::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.player-progress-input::-moz-range-track {
+    background: transparent;
+    border: none;
+    height: 5px;
+}
+
+/* Right Controls */
+.player-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.player-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: var(--text-secondary);
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 5px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.player-select:hover {
+    border-color: var(--border-gold);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.player-select option {
+    background: #16181d;
+    color: var(--text-ui);
+}
+
+.player-chapter-select { max-width: 170px; }
+
+.volume-icon {
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.player-volume {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 60px; height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+    cursor: pointer;
+}
+
+.player-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-volume::-moz-range-thumb {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-volume::-moz-range-track {
+    height: 4px; border-radius: 2px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+
+/* ============================================
+   MOBILE / PHONE LAYOUT
+   Single-column pages, swipe to turn, compact UI
+   ============================================ */
+
+@media (max-width: 700px) {
+    :root {
+        --top-bar-height: 46px;
+        --player-height: 60px;
+    }
+
+    /* Top bar — keep it to one tidy line */
+    .top-bar { padding: 0 12px; }
+    .top-author { font-size: 0.55rem; letter-spacing: 0.18em; }
+    .top-title { font-size: 0.95rem; }
+    .top-bar-center { display: none; }            /* chapter name shown in player */
+    .page-info { font-size: 0.68rem; }
+
+    /* Book area — give the text the full width */
+    .book-area {
+        padding: 8px 6px;
+    }
+
+    .book-container {
+        max-width: none;
+        padding: 20px 16px;
+        border-radius: 4px;
+    }
+
+    /* No spine in single-column mode */
+    .book-spine { display: none; }
+
+    /* Smaller, translucent page arrows (swipe is primary) */
+    .page-nav {
+        width: 34px;
+        height: 34px;
+        font-size: 1.1rem;
+        background: rgba(0, 0, 0, 0.12);
+        opacity: 0.55;
+    }
+    .page-prev { left: 2px; }
+    .page-next { right: 2px; }
+
+    .reader-text {
+        font-size: 1.08rem;
+        line-height: 1.7;
+    }
+
+    .inline-illustration img,
+    .inline-illustration video {
+        max-height: 32vh;
+    }
+
+    /* Player bar — compact single row; drop volume + chapter picker */
+    .player-bar {
+        padding-bottom: env(safe-area-inset-bottom);
+        height: calc(var(--player-height) + env(safe-area-inset-bottom));
+    }
+    .player-bar-inner {
+        padding: 0 10px;
+        gap: 8px;
+    }
+    .player-transport { gap: 4px; }
+    .player-btn { width: 30px; height: 30px; font-size: 0.7rem; }
+    .player-play { width: 38px; height: 38px; font-size: 0.9rem; }
+    .player-progress-section { gap: 6px; }
+    .player-time { min-width: 32px; font-size: 0.62rem; }
+    .player-chapter-select { display: none; }
+    .volume-icon, .player-volume { display: none; }
+    .player-select { padding: 4px 6px; font-size: 0.65rem; }
+}
